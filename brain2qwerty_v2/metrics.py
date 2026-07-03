@@ -102,3 +102,7 @@ class SemanticErrorRate(Metric):
 
     def compute(self) -> torch.Tensor:
         return self.error_sum / self.count.clamp(min=1)
+
+
+# Short alias used throughout the codebase documentation and AGENT_README.
+SemER = SemanticErrorRate
