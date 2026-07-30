@@ -6,6 +6,7 @@
 
 import copy
 
+import pytest
 import torch
 
 from brain2qwerty_v1.config.model_config import ENCODER, TRANSFORMER
@@ -88,3 +89,21 @@ def test_cer_metric_perfect_prediction():
     y_pred = torch.nn.functional.one_hot(y_true, N_CLASSES).float()
     metric.update(y_pred, y_true)
     assert float(metric.compute()) == 0.0
+
+
+def test_cer_metric_nonzero():
+    """CER must be > 0 and correctly normalised for an imperfect prediction.
+
+    Why it matters: the perfect-prediction test only exercises the zero branch.
+    Here the model predicts class 0 for every keystroke but the true labels are
+    [0, 1, 2, 3], so 3 of 4 characters are wrong. The Levenshtein distance is
+    3 and the reference length is 4, giving CER = 0.75 for that sentence; with
+    a single sentence the metric must return exactly that value.
+    """
+    metric = CER()
+    y_true = torch.tensor([0, 1, 2, 3])  # "sote"
+    # predict class 0 ("s") for all four positions -> "ssss" vs "sote"
+    y_pred = torch.zeros(4, N_CLASSES)
+    y_pred[:, 0] = 1.0  # argmax is always class 0
+    metric.update(y_pred, y_true)
+    assert float(metric.compute()) == pytest.approx(0.75)

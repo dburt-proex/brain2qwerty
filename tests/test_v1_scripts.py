@@ -26,6 +26,26 @@ def test_reconstruct_and_error_rates():
     assert compute_wer("hola mundo", "hola mundo") == 0.0
 
 
+def test_error_rates_nonzero():
+    """CER and WER must return the correct positive value for imperfect output.
+
+    Why it matters: the existing test only checks the zero-error (perfect) case,
+    so a regression that always returns 0 would pass undetected. These cases pin
+    the non-trivial direction: 2 of 2 words wrong gives WER = 1.0, and the
+    single-character substitution in "sote" -> "soto" gives CER = 0.25.
+    """
+    # All words wrong: WER = edit_distance(["hola","mundo"], ["adios","amigos"]) / 2
+    assert compute_wer("hola mundo", "adios amigos") == 1.0
+    # Half the words wrong: "hola mundo" vs "hola amigos" -> 1 substitution / 2 words
+    assert compute_wer("hola mundo", "hola amigos") == 0.5
+    # CER: "sote" vs "xxxx" -> distance 4, length 4 -> 1.0
+    assert compute_cer("sote", "xxxx") == 1.0
+    # CER: empty reference is the nan-guard branch
+    import math
+
+    assert math.isnan(compute_cer("", "anything"))
+
+
 def test_process_json(tmp_path):
     """End-to-end check of the callback-JSON -> CSV conversion.
 
