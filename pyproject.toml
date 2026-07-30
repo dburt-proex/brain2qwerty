@@ -26,6 +26,7 @@ classifiers = [
     "Operating System :: OS Independent",
     "Intended Audience :: Science/Research",
     "Topic :: Scientific/Engineering :: Artificial Intelligence",
+    "Typing :: Typed",
 ]
 
 # Pins are exact on purpose: the project's stated goal is to reproduce the
@@ -91,6 +92,10 @@ build-backend = "setuptools.build_meta"
 
 [tool.setuptools.packages.find]
 include = ["brain2qwerty_v1*", "brain2qwerty_v2*", "studies*"]
+
+[tool.setuptools.package-data]
+brain2qwerty_v1 = ["py.typed"]
+brain2qwerty_v2 = ["py.typed"]
 
 [tool.ruff]
 line-length = 90
