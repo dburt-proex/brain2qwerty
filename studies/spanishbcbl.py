@@ -1212,7 +1212,7 @@ class Pinet2024Eeg(_Pinet2024):
             )
         elif len(out) > 1:
             raise ValueError(
-                "More than one file found for subject {subject}, session {session}, task {task}:\n{out}"
+                f"More than one file found for subject {subject}, session {session}, task {task}:\n{out}"
             )
         else:
             return out[0]
