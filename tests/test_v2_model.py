@@ -12,7 +12,11 @@ import torch
 
 import brain2qwerty_v2.models  # noqa: F401  (registers the ConvConformer encoder)
 from brain2qwerty_v2.config.model_config import ENCODER
-from brain2qwerty_v2.ctc_segmenter import CTCSpaceSegmenter, build_intra_word_pooler
+from brain2qwerty_v2.ctc_segmenter import (
+    SPACE_IDX,
+    CTCSpaceSegmenter,
+    build_intra_word_pooler,
+)
 from brain2qwerty_v2.utils import ctc_greedy_decode
 from neuraltrain.models.base import BaseModelConfig
 
@@ -57,6 +61,30 @@ def test_encoder_forward_returns_zfinal_and_aux():
     assert out["z_final"].shape[1] == out["c_out"].shape[1]
 
 
+def test_encoder_uses_output_lengths():
+    enc = _tiny_encoder().eval()
+    b, t = 2, 40
+    neuros = torch.randn(b, t, N_CH)
+    output_lengths = torch.tensor([5, 7])
+    masks = []
+
+    def capture_mask(module, args, kwargs):
+        masks.append(kwargs["key_padding_mask"])
+
+    enc.transformer.conformer_layers[0].self_attn.register_forward_pre_hook(
+        capture_mask, with_kwargs=True
+    )
+    enc(
+        neuros,
+        torch.zeros(b, dtype=torch.long),
+        torch.rand(b, N_CH, 2),
+        output_lengths=output_lengths,
+    )
+
+    expected = torch.arange(7).expand(b, -1) >= output_lengths.unsqueeze(1)
+    torch.testing.assert_close(masks[0], expected)
+
+
 def test_segmenter_and_greedy_decode():
     """The CTC-driven word segmenter produces one pooled vector per word.
 
@@ -80,3 +108,20 @@ def test_segmenter_and_greedy_decode():
 
     texts = ctc_greedy_decode(ctc_logits)
     assert len(texts) == b and all(isinstance(s, str) for s in texts)
+
+
+def test_segmenter_and_greedy_decode_ignore_padding():
+    valid_length, total_length = 4, 6
+    z_final = torch.randn(1, total_length, DIM)
+    ctc_logits = torch.full((1, total_length, N_CLASSES), -10.0)
+    for t, c in enumerate([1, 1, SPACE_IDX, 2, 3, 3]):
+        ctc_logits[0, t, c] = 10.0
+
+    segmenter = CTCSpaceSegmenter(include_blanks=True)
+    expected_words = segmenter(z_final[:, :valid_length], ctc_logits[:, :valid_length])[0]
+    words = segmenter(z_final, ctc_logits, torch.tensor([valid_length]))[0]
+
+    torch.testing.assert_close(words, expected_words)
+    assert ctc_greedy_decode(
+        ctc_logits, torch.tensor([valid_length])
+    ) == ctc_greedy_decode(ctc_logits[:, :valid_length])

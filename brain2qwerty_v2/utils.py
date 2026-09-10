@@ -206,14 +206,19 @@ def label_to_text(ids: list[int]) -> str:
     return "".join(" " if c == "&" else c for c in chars)
 
 
-def ctc_greedy_decode(ctc_logits: torch.Tensor) -> list[str]:
+def ctc_greedy_decode(
+    ctc_logits: torch.Tensor, lengths: torch.Tensor | None = None
+) -> list[str]:
     """Greedy CTC decode (blank=0, collapse repeats, '&' -> space)."""
     preds = ctc_logits.argmax(dim=-1)
     texts: list[str] = []
     for b in range(preds.shape[0]):
         chars: list[str] = []
         prev = 0
-        for t in range(preds.shape[1]):
+        length = (
+            preds.shape[1] if lengths is None else min(lengths[b].item(), preds.shape[1])
+        )
+        for t in range(length):
             c = preds[b, t].item()
             if c != prev and c != 0 and c < len(letters_withblank):
                 ch = letters_withblank[c]

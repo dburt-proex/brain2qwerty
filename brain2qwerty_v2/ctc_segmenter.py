@@ -52,17 +52,21 @@ class CTCSpaceSegmenter(nn.Module):
         return frames_tensor.mean(dim=0)
 
     def forward(
-        self, z_final: torch.Tensor, ctc_logits: torch.Tensor
+        self,
+        z_final: torch.Tensor,
+        ctc_logits: torch.Tensor,
+        lengths: torch.Tensor | None = None,
     ) -> list[torch.Tensor]:
         with torch.no_grad():
             preds = ctc_logits.argmax(dim=-1)
         B, T, _ = z_final.shape
         results: list[torch.Tensor] = []
         for b in range(B):
+            length = T if lengths is None else min(lengths[b].item(), T)
             is_space = preds[b] == SPACE_IDX
             word_segments: list[list[int]] = []
             current: list[int] = []
-            for t in range(T):
+            for t in range(length):
                 if is_space[t]:
                     if current:
                         word_segments.append(current)
@@ -74,7 +78,7 @@ class CTCSpaceSegmenter(nn.Module):
             word_segments = [s for s in word_segments if len(s) >= self.min_word_frames]
 
             if not word_segments:
-                results.append(self._pool(z_final[b]).unsqueeze(0))
+                results.append(self._pool(z_final[b, :length]).unsqueeze(0))
             else:
                 embeds = [
                     self._pool(
