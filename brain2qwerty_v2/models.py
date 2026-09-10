@@ -6,6 +6,7 @@
 
 import torch
 import torch.nn as nn
+from torchaudio.models import Conformer as TorchaudioConformer
 
 from neuraltrain.models.conv_transformer import ConvTransformer, ConvTransformerModel
 
@@ -46,6 +47,7 @@ class ConvConformerModel(ConvTransformerModel):
         day_idx: torch.Tensor | None = None,
         channel_positions: torch.Tensor | None = None,
         neuro_device_type: str | None = None,
+        output_lengths: torch.Tensor | None = None,
     ) -> dict[str, torch.Tensor]:
         # Sentence batches arrive as (B, T, C); the conv encoder wants (B, C, T).
         x = x.transpose(1, 2)
@@ -61,7 +63,14 @@ class ConvConformerModel(ConvTransformerModel):
             z = z + self.intermediate_linear(torch.softmax(z_aux, dim=-1))
 
         c_in = self._pre_transformer_forward(z, neuro_device_type=neuro_device_type)
-        z_final = self.transformer(c_in)
+        if output_lengths is not None and isinstance(
+            self.transformer, TorchaudioConformer
+        ):
+            z_final, _ = TorchaudioConformer.forward(
+                self.transformer, input=c_in, lengths=output_lengths
+            )
+        else:
+            z_final = self.transformer(c_in)
 
         c_out = z_final
         if self.output_avg_pool:

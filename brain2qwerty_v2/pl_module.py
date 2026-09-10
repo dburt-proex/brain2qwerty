@@ -295,11 +295,16 @@ class NeuroLLMModule(pl.LightningModule):
             data = self.preprocess(data)
 
         B = data["neuros"].shape[0]
-        model_out = self.network(data["neuros"], data["days"], data.get("chan_pos"))
+        out_lens = compute_output_lens(self.network, data["neuro_sizes"])
+        model_out = self.network(
+            data["neuros"],
+            data["days"],
+            data.get("chan_pos"),
+            output_lengths=out_lens,
+        )
         z_final = model_out["z_final"]
         ctc_logits = model_out["c_out"]
 
-        out_lens = compute_output_lens(self.network, data["neuro_sizes"])
         out_lens = torch.clamp(out_lens, min=0, max=ctc_logits.shape[1])
 
         if ctc_logits.shape[1] < data["phoneme_sizes"].max():
@@ -348,7 +353,7 @@ class NeuroLLMModule(pl.LightningModule):
         sentences = [seg.trigger.text for seg in batch.segments]
         word_embeds_list = None
         if (con_on or llm_on) and sentences:
-            word_embeds_list = self.word_segmenter(z_final, ctc_logits)
+            word_embeds_list = self.word_segmenter(z_final, ctc_logits, out_lens)
             # Map encoder word embeddings into the LLM word-embedding space, the
             # space the contrastive target lives in (Identity when the encoder
             # dim already equals the LLM hidden dim).
@@ -372,7 +377,7 @@ class NeuroLLMModule(pl.LightningModule):
         # LLM generation
         if llm_on and word_embeds_list is not None and sentences:
             padded_words, neuro_mask = self._pad_word_embeds(word_embeds_list)
-            ctc_texts = ctc_greedy_decode(ctc_logits.detach())
+            ctc_texts = ctc_greedy_decode(ctc_logits.detach(), out_lens)
             llm_loss = self._compute_llm_loss(
                 padded_words, neuro_mask, ctc_texts, sentences
             )
