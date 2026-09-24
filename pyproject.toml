@@ -42,7 +42,7 @@ dependencies = [
     "torch==2.6.0",
     "torchaudio==2.6.0",
     "torchvision==0.21.0",
-    "lightning==2.5.2",
+    "lightning==2.6.6",
     "torchmetrics==1.7.3",
     "x-transformers==2.4.9",
     # V2 LLM stack
