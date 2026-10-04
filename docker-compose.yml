@@ -1,0 +1,35 @@
+# Copyright (c) Meta Platforms, Inc. and affiliates.
+# All rights reserved.
+#
+# This source code is licensed under the license found in the
+# LICENSE file in the root directory of this source tree.
+
+services:
+  brain2qwerty:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: brain2qwerty:latest
+    shm_size: '16gb'
+    ipc: host
+    environment:
+      - BRAIN2QWERTY_CACHE=/workspace/.cache/brain2qwerty
+      - BRAIN2QWERTY_RESULTS=/workspace/.cache/brain2qwerty/results
+      - BRAIN2QWERTY_STUDIES=/workspace/data/SpanishBCBL
+      - BRAIN2QWERTY_STUDIES_EN=/workspace/data/EnglishBCBL
+      - WANDB_HOST=${WANDB_HOST:-}
+      - WANDB_API_KEY=${WANDB_API_KEY:-}
+    volumes:
+      - .:/workspace
+      - cache_data:/workspace/.cache
+      - ./data:/workspace/data
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+
+volumes:
+  cache_data:

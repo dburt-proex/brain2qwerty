@@ -26,3 +26,7 @@ results/
 .DS_Store
 core.*
 lightning_logs/
+
+# Data & Cache mounts
+data/
+.cache/
