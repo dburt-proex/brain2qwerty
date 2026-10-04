@@ -31,6 +31,26 @@ Decoding Sentences from Non-Invasive Recordings of the Brain.
 - [NeuralSet](https://github.com/facebookresearch/neuroai/tree/main/neuralset-repo)
 - [NeuralTrain](https://github.com/facebookresearch/neuroai/tree/main/neuraltrain-repo)
 
+## Development & Docker
+
+You can run Brain2Qwerty with reproducible CUDA and Python dependencies using Docker or VS Code DevContainers:
+
+### Docker Compose
+```bash
+# Build the environment
+docker compose build
+
+# Run tests
+docker compose run --rm brain2qwerty pytest tests/ -q
+
+# Run V1 smoke-test (1 GPU or CPU fallback)
+docker compose run --rm brain2qwerty python -m brain2qwerty_v1.main debug
+```
+
+### VS Code DevContainers
+1. Open this repository in VS Code with the **Dev Containers** extension installed.
+2. Select **"Reopen in Container"** when prompted (or open the Command Palette and select `Dev Containers: Reopen in Container`).
+
 ## License
 The code is released under [CC BY-NC 4.0](LICENSE). 
 

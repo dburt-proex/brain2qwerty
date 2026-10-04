@@ -1,0 +1,46 @@
+{
+  "name": "Brain2Qwerty DevContainer",
+  "build": {
+    "dockerfile": "../Dockerfile",
+    "context": ".."
+  },
+  "runArgs": [
+    "--shm-size=16gb",
+    "--ipc=host"
+  ],
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "ms-python.python",
+        "charliermarsh.ruff",
+        "ms-python.vscode-pylance",
+        "tamasfe.even-better-toml"
+      ],
+      "settings": {
+        "python.defaultInterpreterPath": "/opt/venv/bin/python",
+        "python.testing.pytestEnabled": true,
+        "python.testing.pytestArgs": [
+          "tests"
+        ],
+        "[python]": {
+          "editor.defaultFormatter": "charliermarsh.ruff",
+          "editor.formatOnSave": true,
+          "editor.codeActionsOnSave": {
+            "source.organizeImports": "explicit"
+          }
+        },
+        "ruff.configurationPreference": "filesystemFirst"
+      }
+    }
+  },
+  "remoteEnv": {
+    "BRAIN2QWERTY_CACHE": "/workspace/.cache/brain2qwerty",
+    "BRAIN2QWERTY_RESULTS": "/workspace/.cache/brain2qwerty/results",
+    "BRAIN2QWERTY_STUDIES": "/workspace/data/SpanishBCBL",
+    "BRAIN2QWERTY_STUDIES_EN": "/workspace/data/EnglishBCBL"
+  },
+  "mounts": [
+    "source=brain2qwerty-cache,target=/workspace/.cache,type=volume"
+  ],
+  "postCreateCommand": "pip install --no-deps -e ."
+}
